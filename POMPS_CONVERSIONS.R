@@ -102,3 +102,82 @@ RECENTERED_POMPS <- function(data, var_name, center_value) {
 names(df_LONGPOMPS)
 
 df_LONGPOMPS_RESPOMP <- RECENTERED_POMPS(df_LONGPOMPS, var_name = "Pfac_PLC", center_value = 0) # PARENT P-FACTOR
+
+
+
+################################################################################
+####################### POMPS FOR A SINGLE TIMEPOINT - NOT CENTERED 
+
+# Modified RECENTERED_POMPS function to calculate relative POMP scores without centering
+INVARIANT_POMPS <- function(data, var_name) {
+  # Check if the variable exists in the data
+  if (!(var_name %in% names(data))) {
+    stop("Variable not found in the dataset.")
+  }
+  
+  # Convert the variable to numeric if it's not already
+  data[[var_name]] <- as.numeric(data[[var_name]])
+  
+  # Calculate the maximum and minimum values for the variable
+  max_val <- max(data[[var_name]], na.rm = TRUE)
+  min_val <- min(data[[var_name]], na.rm = TRUE)
+  
+  # Calculate the relative POMP score for each observation (0 to 100)
+  poms_score <- ifelse(
+    is.na(data[[var_name]]), 
+    NA, 
+    ((data[[var_name]] - min_val) / (max_val - min_val)) * 100
+  )
+  
+  # Add the relative POMP score variable to the dataset with a prefix "p"
+  new_var_name <- paste0("p", var_name)
+  data[[new_var_name]] <- poms_score
+  
+  # Return the modified dataset
+  return(data)
+}
+
+### USAGE 
+df <- INVARIANT_POMPS(df, "variable")
+
+
+## CREATE A USER IDENTIFIED RANGE POMPS FUNCTION 
+
+# THIS IS WHEN THERE IS A SET (AND MEANINGFUL) MINIMUM AND MAXIMUM
+# BECAUSE I AM SUMMING ACROSS SCALES, I WANT THEM TO HOLD THEIR WEIGHTING, SO I
+# AM ENTERING THE SCALE MINIMUM AND MAXIMUM AND THEN COMPUTING ITS PERCENTILE BASED 
+# ON THESE VALUES. THIS IS DIFFERENT THAN THE RELATIVE POMPS SCORE I HAVE PREVIOUSLY USED
+# WHERE THE BOUNDS ARE THE OBSERVED RANGE OF THE DATA 
+
+
+## USAGE: DF_POMS <- SINGLE_POMP_SET(df, "CRIM_ACT", min_val = 1, max_val = 20)
+# MIN IS THE LOWEST POSSIBLE SCORE, MAX IS THE MAX POSSIBLE (NOT OBSERVED) SCORE
+
+SINGLE_POMP_SET <- function(data, var_name, min_val, max_val) {
+  # Check if the variable exists in the data
+  if (!(var_name %in% names(data))) {
+    stop("Variable not found in the dataset.")
+  }
+  
+  # Convert the variable to numeric if it's not already
+  data[[var_name]] <- as.numeric(data[[var_name]])
+  
+  # Check if min_val and max_val are valid
+  if (min_val >= max_val) {
+    stop("min_val must be less than max_val.")
+  }
+  
+  # Calculate the POMPS score for each observation using the provided min and max
+  poms_score <- ifelse(
+    is.na(data[[var_name]]), 
+    NA, 
+    (((data[[var_name]] - min_val) / (max_val - min_val))) * 100
+  )
+  
+  # Add the POMPS variable to the dataset with a prefix "p"
+  new_var_name <- paste0("p", var_name)
+  data[[new_var_name]] <- poms_score
+  
+  # Return the modified dataframe
+  return(data)
+}
